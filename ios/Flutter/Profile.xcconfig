@@ -1,0 +1,8 @@
+# Include CocoaPods configuration for Profile build
+# This ensures Pods settings are applied when building the Profile scheme.
+# The conditional include avoids errors before `pod install`.
+# See: CocoaPods integration warning about base configuration.
+
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"
+#include "Generated.xcconfig"
+
