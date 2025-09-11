@@ -4,7 +4,14 @@ import 'package:http/http.dart' as http;
 
 class AbilityRemoteDataSource {
   final http.Client client;
-  AbilityRemoteDataSource({http.Client? client}) : client = client ?? http.Client();
+  AbilityRemoteDataSource({http.Client? client})
+    : client = client ?? http.Client();
+
+  // 共通のヘッダー設定
+  Map<String, String> get _headers => {
+    'User-Agent': 'PokemonApp/1.0',
+    'Accept': 'application/json',
+  };
 
   Future<Map<String, String>> fetchLocalizedNames(
     List<String> abilitySlugs, {
@@ -13,20 +20,25 @@ class AbilityRemoteDataSource {
   }) async {
     final Map<String, String> map = {};
     for (int i = 0; i < abilitySlugs.length; i += concurrency) {
-      final end = (i + concurrency > abilitySlugs.length) ? abilitySlugs.length : (i + concurrency);
+      final end = (i + concurrency > abilitySlugs.length)
+          ? abilitySlugs.length
+          : (i + concurrency);
       final futures = <Future<void>>[];
       for (int j = i; j < end; j++) {
         final slug = abilitySlugs[j];
         futures.add(() async {
           final url = Uri.parse('https://pokeapi.co/api/v2/ability/$slug/');
-          final res = await client.get(url);
+          final res = await client.get(url, headers: _headers);
           if (res.statusCode != 200) return;
-          final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-          final names = (body['names'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+          final body =
+              jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+          final names = (body['names'] as List<dynamic>? ?? [])
+              .cast<Map<String, dynamic>>();
           String? chosen;
           for (final code in localePriority) {
             for (final n in names) {
-              final lang = (n['language'] as Map<String, dynamic>?)?['name'] as String?;
+              final lang =
+                  (n['language'] as Map<String, dynamic>?)?['name'] as String?;
               if (lang == code) {
                 chosen = n['name'] as String?;
                 break;
@@ -44,4 +56,3 @@ class AbilityRemoteDataSource {
     return map;
   }
 }
-

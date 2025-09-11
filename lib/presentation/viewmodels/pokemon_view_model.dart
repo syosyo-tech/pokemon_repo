@@ -58,21 +58,49 @@ class PokemonViewModel extends ChangeNotifier {
     _listLoading = true;
     notifyListeners();
     try {
-      final page = await repository.getPokemonList(limit: _limit, offset: _offset);
+      final page = await repository.getPokemonList(
+        limit: _limit,
+        offset: _offset,
+      );
       // 日本語名に差し替え
       final ids = page.map((e) => e.id).toList(growable: false);
-      final locMap = await localizationRepository.getLocalizedNamesByIds(
-        ids,
-        localePriority: preferredLocales,
-      );
-      final localized = page.map((p) {
-        final loc = locMap[p.id];
-        final name = (loc != null && loc.name.isNotEmpty) ? loc.name : p.name;
-        return Pokemon(id: p.id, name: name, imageUrl: p.imageUrl,
-          height: p.height, weight: p.weight, base_experience: p.base_experience,
-          types: p.types, moves: p.moves);
-      }).toList();
-      _list.addAll(localized);
+      try {
+        final locMap = await localizationRepository.getLocalizedNamesByIds(
+          ids,
+          localePriority: preferredLocales,
+        );
+        final localized = page.map((p) {
+          final loc = locMap[p.id];
+          final name = (loc != null && loc.name.isNotEmpty) ? loc.name : p.name;
+          return Pokemon(
+            id: p.id,
+            name: name,
+            imageUrl: p.imageUrl,
+            height: p.height,
+            weight: p.weight,
+            base_experience: p.base_experience,
+            types: p.types,
+            moves: p.moves,
+          );
+        }).toList();
+        _list.addAll(localized);
+      } catch (localizationError) {
+        // ローカライゼーションに失敗した場合は英語名で表示
+        debugPrint('ローカライゼーションエラー: $localizationError');
+        final localized = page.map((p) {
+          return Pokemon(
+            id: p.id,
+            name: p.name,
+            imageUrl: p.imageUrl,
+            height: p.height,
+            weight: p.weight,
+            base_experience: p.base_experience,
+            types: p.types,
+            moves: p.moves,
+          );
+        }).toList();
+        _list.addAll(localized);
+      }
       _offset += _limit;
       _listError = null;
     } catch (e) {

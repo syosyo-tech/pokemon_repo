@@ -15,19 +15,27 @@ abstract class PokemonRemoteDataSource {
 
 class PokemonRemoteDataSourceImpl implements PokemonRemoteDataSource {
   final http.Client client;
-  PokemonRemoteDataSourceImpl({http.Client? client}) : client = client ?? http.Client();
+  PokemonRemoteDataSourceImpl({http.Client? client})
+    : client = client ?? http.Client();
 
   @override
   Future<List<PokemonModel>> fetchList({int limit = 30, int offset = 0}) async {
     // PokeAPIの一覧エンドポイントを叩いて、「名前」と「詳細URL」のリストを取得
-    final url = Uri.parse('https://pokeapi.co/api/v2/pokemon?limit=$limit&offset=$offset');
-    final res = await client.get(url);
+    final url = Uri.parse(
+      'https://pokeapi.co/api/v2/pokemon?limit=$limit&offset=$offset',
+    );
+    final headers = {
+      'User-Agent': 'PokemonApp/1.0',
+      'Accept': 'application/json',
+    };
+    final res = await client.get(url, headers: headers);
     if (res.statusCode != 200) {
-      throw Exception('HTTP ${res.statusCode}');
+      throw Exception('HTTP ${res.statusCode}: ${res.body}');
     }
 
     final map = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-    final results = (map['results'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+    final results = (map['results'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
 
     // 詳細URLからIDを抽出し、公式アートの画像URLを組み立てます
     List<PokemonModel> list = [];
@@ -38,9 +46,20 @@ class PokemonRemoteDataSourceImpl implements PokemonRemoteDataSource {
       final idMatch = RegExp(r"/pokemon/(\d+)/?").firstMatch(detailUrl);
       if (name.isEmpty || idMatch == null) continue;
       final id = int.parse(idMatch.group(1)!);
-      final imageUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/$id.png';
-      list.add(PokemonModel(id: id, name: name, imageUrl: imageUrl,
-        height: '', weight: '', base_experience: 0, types: '', moves: ''));
+      final imageUrl =
+          'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/$id.png';
+      list.add(
+        PokemonModel(
+          id: id,
+          name: name,
+          imageUrl: imageUrl,
+          height: '',
+          weight: '',
+          base_experience: 0,
+          types: '',
+          moves: '',
+        ),
+      );
     }
     return list;
   }
@@ -48,9 +67,13 @@ class PokemonRemoteDataSourceImpl implements PokemonRemoteDataSource {
   @override
   Future<PokemonDetailModel> fetchDetail(int id) async {
     final url = Uri.parse('https://pokeapi.co/api/v2/pokemon/$id/');
-    final res = await client.get(url);
+    final headers = {
+      'User-Agent': 'PokemonApp/1.0',
+      'Accept': 'application/json',
+    };
+    final res = await client.get(url, headers: headers);
     if (res.statusCode != 200) {
-      throw Exception('HTTP ${res.statusCode}');
+      throw Exception('HTTP ${res.statusCode}: ${res.body}');
     }
     final map = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     return PokemonDetailModel.fromJson(map);
@@ -60,9 +83,13 @@ class PokemonRemoteDataSourceImpl implements PokemonRemoteDataSource {
   Future<PokemonDetailModel> fetchDetailByKey(String key) async {
     final k = key.trim().toLowerCase();
     final url = Uri.parse('https://pokeapi.co/api/v2/pokemon/$k/');
-    final res = await client.get(url);
+    final headers = {
+      'User-Agent': 'PokemonApp/1.0',
+      'Accept': 'application/json',
+    };
+    final res = await client.get(url, headers: headers);
     if (res.statusCode != 200) {
-      throw Exception('HTTP ${res.statusCode}');
+      throw Exception('HTTP ${res.statusCode}: ${res.body}');
     }
     final map = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     return PokemonDetailModel.fromJson(map);

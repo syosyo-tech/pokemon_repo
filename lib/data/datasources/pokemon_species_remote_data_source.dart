@@ -11,14 +11,29 @@ abstract class PokemonSpeciesRemoteDataSource {
     int concurrency = 6,
   });
 
-  Future<SpeciesDetail> fetchSpeciesDetail(int id, {List<String> localePriority = const ['ja-Hrkt', 'ja', 'en']});
+  Future<SpeciesDetail> fetchSpeciesDetail(
+    int id, {
+    List<String> localePriority = const ['ja-Hrkt', 'ja', 'en'],
+  });
   Future<List<int>> fetchEvolutionChainIds(int chainId);
-  Future<int?> searchIdByLocalizedName(String name, {List<String> localePriority = const ['ja-Hrkt', 'ja', 'en'], int concurrency = 8});
+  Future<int?> searchIdByLocalizedName(
+    String name, {
+    List<String> localePriority = const ['ja-Hrkt', 'ja', 'en'],
+    int concurrency = 8,
+  });
 }
 
-class PokemonSpeciesRemoteDataSourceImpl implements PokemonSpeciesRemoteDataSource {
+class PokemonSpeciesRemoteDataSourceImpl
+    implements PokemonSpeciesRemoteDataSource {
   final http.Client client;
-  PokemonSpeciesRemoteDataSourceImpl({http.Client? client}) : client = client ?? http.Client();
+  PokemonSpeciesRemoteDataSourceImpl({http.Client? client})
+    : client = client ?? http.Client();
+
+  // 共通のヘッダー設定
+  Map<String, String> get _headers => {
+    'User-Agent': 'PokemonApp/1.0',
+    'Accept': 'application/json',
+  };
 
   @override
   Future<Map<int, PokemonLocalizedNameModel>> fetchLocalizedNamesByIds(
@@ -28,17 +43,27 @@ class PokemonSpeciesRemoteDataSourceImpl implements PokemonSpeciesRemoteDataSour
   }) async {
     final Map<int, PokemonLocalizedNameModel> result = {};
     for (int i = 0; i < ids.length; i += concurrency) {
-      final end = (i + concurrency > ids.length) ? ids.length : (i + concurrency);
+      final end = (i + concurrency > ids.length)
+          ? ids.length
+          : (i + concurrency);
       final futures = <Future<void>>[];
       for (int j = i; j < end; j++) {
         final id = ids[j];
         futures.add(() async {
-          final url = Uri.parse('https://pokeapi.co/api/v2/pokemon-species/$id/');
-          final res = await client.get(url);
+          final url = Uri.parse(
+            'https://pokeapi.co/api/v2/pokemon-species/$id/',
+          );
+          final res = await client.get(url, headers: _headers);
           if (res.statusCode != 200) return;
-          final map = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-          final names = (map['names'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-          final model = PokemonLocalizedNameModel.fromNames(id, names, localePriority);
+          final map =
+              jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+          final names = (map['names'] as List<dynamic>? ?? [])
+              .cast<Map<String, dynamic>>();
+          final model = PokemonLocalizedNameModel.fromNames(
+            id,
+            names,
+            localePriority,
+          );
           if (model.name.isNotEmpty) {
             result[id] = model;
           }
@@ -50,20 +75,26 @@ class PokemonSpeciesRemoteDataSourceImpl implements PokemonSpeciesRemoteDataSour
   }
 
   @override
-  Future<SpeciesDetail> fetchSpeciesDetail(int id, {List<String> localePriority = const ['ja-Hrkt', 'ja', 'en']}) async {
+  Future<SpeciesDetail> fetchSpeciesDetail(
+    int id, {
+    List<String> localePriority = const ['ja-Hrkt', 'ja', 'en'],
+  }) async {
     final url = Uri.parse('https://pokeapi.co/api/v2/pokemon-species/$id/');
-    final res = await client.get(url);
+    final res = await client.get(url, headers: _headers);
     if (res.statusCode != 200) {
-      throw Exception('HTTP ${res.statusCode}');
+      throw Exception('HTTP ${res.statusCode}: ${res.body}');
     }
     final map = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-    final names = (map['names'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-    final flavorList = (map['flavor_text_entries'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+    final names = (map['names'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
+    final flavorList = (map['flavor_text_entries'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
 
     String? chooseName() {
       for (final code in localePriority) {
         for (final n in names) {
-          final lang = (n['language'] as Map<String, dynamic>?)?['name'] as String?;
+          final lang =
+              (n['language'] as Map<String, dynamic>?)?['name'] as String?;
           if (lang == code) return n['name'] as String?;
         }
       }
@@ -73,7 +104,8 @@ class PokemonSpeciesRemoteDataSourceImpl implements PokemonSpeciesRemoteDataSour
     String? chooseFlavor() {
       for (final code in localePriority) {
         for (final f in flavorList) {
-          final lang = (f['language'] as Map<String, dynamic>?)?['name'] as String?;
+          final lang =
+              (f['language'] as Map<String, dynamic>?)?['name'] as String?;
           if (lang == code) {
             final txt = f['flavor_text'] as String?;
             if (txt != null) {
@@ -86,7 +118,9 @@ class PokemonSpeciesRemoteDataSourceImpl implements PokemonSpeciesRemoteDataSour
     }
 
     final evoUrl = (map['evolution_chain'] as Map?)?['url'] as String?;
-    final evoIdMatch = evoUrl != null ? RegExp(r"/evolution-chain/(\d+)/").firstMatch(evoUrl) : null;
+    final evoIdMatch = evoUrl != null
+        ? RegExp(r"/evolution-chain/(\d+)/").firstMatch(evoUrl)
+        : null;
     final chainId = evoIdMatch != null ? int.parse(evoIdMatch.group(1)!) : null;
 
     return SpeciesDetail(
@@ -98,10 +132,12 @@ class PokemonSpeciesRemoteDataSourceImpl implements PokemonSpeciesRemoteDataSour
 
   @override
   Future<List<int>> fetchEvolutionChainIds(int chainId) async {
-    final url = Uri.parse('https://pokeapi.co/api/v2/evolution-chain/$chainId/');
-    final res = await client.get(url);
+    final url = Uri.parse(
+      'https://pokeapi.co/api/v2/evolution-chain/$chainId/',
+    );
+    final res = await client.get(url, headers: _headers);
     if (res.statusCode != 200) {
-      throw Exception('HTTP ${res.statusCode}');
+      throw Exception('HTTP ${res.statusCode}: ${res.body}');
     }
     final map = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     final List<int> ids = [];
@@ -113,7 +149,8 @@ class PokemonSpeciesRemoteDataSourceImpl implements PokemonSpeciesRemoteDataSour
         final m = RegExp(r"/pokemon-species/(\d+)/").firstMatch(url);
         if (m != null) ids.add(int.parse(m.group(1)!));
       }
-      final evolves = (node['evolves_to'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+      final evolves = (node['evolves_to'] as List<dynamic>? ?? [])
+          .cast<Map<String, dynamic>>();
       for (final e in evolves) {
         walk(e);
       }
@@ -125,15 +162,23 @@ class PokemonSpeciesRemoteDataSourceImpl implements PokemonSpeciesRemoteDataSour
   }
 
   @override
-  Future<int?> searchIdByLocalizedName(String name, {List<String> localePriority = const ['ja-Hrkt', 'ja', 'en'], int concurrency = 8}) async {
+  Future<int?> searchIdByLocalizedName(
+    String name, {
+    List<String> localePriority = const ['ja-Hrkt', 'ja', 'en'],
+    int concurrency = 8,
+  }) async {
     final target = name.trim();
     if (target.isEmpty) return null;
     // 全speciesのURL一覧を取得してIDリスト化
-    final listUrl = Uri.parse('https://pokeapi.co/api/v2/pokemon-species?limit=2000&offset=0');
-    final listRes = await client.get(listUrl);
+    final listUrl = Uri.parse(
+      'https://pokeapi.co/api/v2/pokemon-species?limit=2000&offset=0',
+    );
+    final listRes = await client.get(listUrl, headers: _headers);
     if (listRes.statusCode != 200) return null;
-    final listMap = jsonDecode(utf8.decode(listRes.bodyBytes)) as Map<String, dynamic>;
-    final results = (listMap['results'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+    final listMap =
+        jsonDecode(utf8.decode(listRes.bodyBytes)) as Map<String, dynamic>;
+    final results = (listMap['results'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
     final ids = <int>[];
     for (final r in results) {
       final url = r['url'] as String?;
@@ -144,14 +189,19 @@ class PokemonSpeciesRemoteDataSourceImpl implements PokemonSpeciesRemoteDataSour
 
     int? found;
     for (int i = 0; i < ids.length && found == null; i += concurrency) {
-      final end = (i + concurrency > ids.length) ? ids.length : (i + concurrency);
+      final end = (i + concurrency > ids.length)
+          ? ids.length
+          : (i + concurrency);
       final futures = <Future<void>>[];
       for (int j = i; j < end; j++) {
         final id = ids[j];
         futures.add(() async {
           if (found != null) return; // 早期終了
           try {
-            final s = await fetchSpeciesDetail(id, localePriority: localePriority);
+            final s = await fetchSpeciesDetail(
+              id,
+              localePriority: localePriority,
+            );
             final candidates = <String>[s.displayName];
             // 念のためja-Hrkt/ja両方比較するため再取得せず大文字小文字/全角半角差を無視
             if (candidates.any((n) => n == target)) {
@@ -171,5 +221,9 @@ class SpeciesDetail {
   final String displayName;
   final String description;
   final int? evolutionChainId;
-  const SpeciesDetail({required this.displayName, required this.description, required this.evolutionChainId});
+  const SpeciesDetail({
+    required this.displayName,
+    required this.description,
+    required this.evolutionChainId,
+  });
 }

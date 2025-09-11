@@ -13,7 +13,7 @@ dependencies:
   http: ^1.0.0          # HTTPクライアント（Data層で使用）
   cupertino_icons: ^1.0.8  # iOS向けアイコン
   google_fonts: ^6.1.0     # Google Fontsを簡単に適用
-  path_provider: ^2.1.3     # iOSのファイルパス取得（google_fontsのキャッシュ用に必要）
+  path_provider: ^2.1.4     # iOSのファイルパス取得（google_fontsのキャッシュ用に必要）
 
 dev_dependencies:
   flutter_test:

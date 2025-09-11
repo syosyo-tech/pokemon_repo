@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ポケモン図鑑', // 端末のタスク切替などで使われるアプリ名
+      title: '図鑑', // 端末のタスク切替などで使われるアプリ名
       theme: ThemeData(
         useMaterial3: true,           // 新しいMaterial3デザイン
         colorSchemeSeed: Colors.red,  // 基本カラー（赤系）

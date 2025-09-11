@@ -1,0 +1,1 @@
+ /Users/syo_mac/github/pokemon_repo/.dart_tool/flutter_build/b5cd3325b8273519c42b2dc8eec9a1a0/native_assets.json: 
